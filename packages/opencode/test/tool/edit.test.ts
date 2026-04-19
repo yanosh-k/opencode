@@ -642,7 +642,7 @@ describe("tool.edit", () => {
     test("serializes concurrent edits to same file", async () => {
       await using tmp = await tmpdir()
       const filepath = path.join(tmp.path, "file.txt")
-      await fs.writeFile(filepath, "0", "utf-8")
+      await fs.writeFile(filepath, "A\nB", "utf-8")
 
       await Instance.provide({
         directory: tmp.path,
@@ -654,8 +654,8 @@ describe("tool.edit", () => {
             edit.execute(
               {
                 filePath: filepath,
-                oldString: "0",
-                newString: "1",
+                oldString: "A",
+                newString: "ChangeA",
               },
               ctx,
             ),
@@ -665,8 +665,8 @@ describe("tool.edit", () => {
             edit.execute(
               {
                 filePath: filepath,
-                oldString: "0",
-                newString: "2",
+                oldString: "B",
+                newString: "ChangeB",
               },
               ctx,
             ),
@@ -675,6 +675,9 @@ describe("tool.edit", () => {
           // Both should complete without error (though one might fail due to content mismatch)
           const results = await Promise.allSettled([promise1, promise2])
           expect(results.some((r) => r.status === "fulfilled")).toBe(true)
+
+          const content = await fs.readFile(filepath, "utf-8")
+          expect(content).toContain("ChangeA\nChangeB")
         },
       })
     })
